@@ -12,11 +12,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "csv": "^6.5.1",
     "csv-parser": "^3.2.1",
     "express": "^5.2.1",
     "mqtt": "^5.15.1",
-    "sqlite3": "^6.0.1",
     "ws": "^8.18.0"
   }
 }

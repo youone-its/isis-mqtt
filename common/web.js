@@ -28,39 +28,34 @@ wss.on('connection', (ws) => {
             if (data.type === 'auth') {
                 const { username, password } = data;
 
-                db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, user) => {
-                    if (err || !user) {
-                        console.log(`❌ Auth failed for: ${username}`);
-                        ws.send(JSON.stringify({ type: 'error', message: 'Invalid username or password' }));
-                        return;
-                    }
+                const user = db.prepare("SELECT * FROM users WHERE username = ? AND password = ?").get(username, password);
+                if (!user) {
+                    console.log(`❌ Auth failed for: ${username}`);
+                    ws.send(JSON.stringify({ type: 'error', message: 'Invalid username or password' }));
+                    return;
+                }
 
-                    if (activeSubscriptions.has(username)) {
-                        console.log(`🔄 Re-authenticating user: ${username}`);
-                        activeSubscriptions.get(username).end();
-                        activeSubscriptions.delete(username);
-                    }
+                if (activeSubscriptions.has(username)) {
+                    console.log(`🔄 Re-authenticating user: ${username}`);
+                    activeSubscriptions.get(username).end();
+                    activeSubscriptions.delete(username);
+                }
 
-                    currentUser = username;
-                    ws.send(JSON.stringify({ type: 'auth_ok', username }));
-                    setupMqttForUser(ws, user);
-                });
+                currentUser = username;
+                ws.send(JSON.stringify({ type: 'auth_ok', username }));
+                setupMqttForUser(ws, user);
             }
 
             if (data.type === 'register') {
                 const { username, password, controllers } = data;
 
-                db.run("INSERT INTO users (username, password, allowed_controllers) VALUES (?, ?, ?)",
-                    [username, password, controllers],
-                    (err) => {
-                        if (err) {
-                            ws.send(JSON.stringify({ type: 'error', message: 'Username already exists' }));
-                            return;
-                        }
-                        console.log(`✅ New user registered: ${username}`);
-                        ws.send(JSON.stringify({ type: 'reg_ok' }));
-                    }
-                );
+                try {
+                    db.prepare("INSERT INTO users (username, password, allowed_controllers) VALUES (?, ?, ?)").run(username, password, controllers);
+                    console.log(`✅ New user registered: ${username}`);
+                    ws.send(JSON.stringify({ type: 'reg_ok' }));
+                } catch (err) {
+                    ws.send(JSON.stringify({ type: 'error', message: 'Username already exists' }));
+                }
             }
         } catch (e) {
             console.error("Gagal memproses pesan WS:", e);
