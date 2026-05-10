@@ -75,34 +75,34 @@ wss.on('connection', (ws) => {
 function setupMqttForUser(ws, user) {
     const controllers = user.allowed_controllers.split(',');
     
-    // Buat Subscriber baru (Memenuhi syarat Minimal 2 Subscriber dalam sistem)
     const mqttClient = createClient(`web_sub_${user.username}`, {
-        properties: { receiveMaximum: 15 } // Fitur 10: Flow Control
+        properties: { receiveMaximum: 15 }
     });
 
     mqttClient.on('connect', () => {
         console.log(`✅ MQTT Client Active for ${user.username}. Monitoring: ${controllers}`);
         
         controllers.forEach(ctrlId => {
-            // Fitur 9: Shared Subscription & Fitur 2: Wildcard
-            mqttClient.subscribe(`$share/web_group/farm/${ctrlId}/sensor/#`, { qos: 1 });
-            mqttClient.subscribe(`$share/web_group/farm/${ctrlId}/status`, { qos: 1 });
+            // New topic structure subscriptions
+            mqttClient.subscribe(`$share/web_group/farm/sensors/${ctrlId}/+`, { qos: 1 });
+            mqttClient.subscribe(`$share/web_group/farm/status/${ctrlId}`, { qos: 1 });
+            mqttClient.subscribe(`$share/web_group/farm/alerts/${ctrlId}`, { qos: 1 });
         });
     });
 
-    mqttClient.on('message', (topic, message, packet) => {
+    mqttClient.on('message', (topic, message) => {
         const parts = topic.split('/');
-        const ctrlId = parts[1];
-        const type = parts[2];
+        const type = parts[1]; // sensors, status, or alerts
+        const ctrlId = parts[2];
 
         let payload;
-        if (type === 'sensor') {
+        if (type === 'sensors') {
             try {
                 const data = JSON.parse(message.toString());
                 payload = {
                     type: 'sensor',
                     controller: ctrlId,
-                    ts: Date.now(),
+                    ts: data.timestamp || Date.now(),
                     payload: {
                         temperature: parseFloat(data.temp),
                         humidity: parseFloat(data.hum),
@@ -110,8 +110,17 @@ function setupMqttForUser(ws, user) {
                     }
                 };
             } catch (e) { return; }
-        } else {
-            // Menangani Status/LWT (Fitur 7 & 5)
+        } else if (type === 'alerts') {
+            try {
+                const data = JSON.parse(message.toString());
+                payload = {
+                    type: 'alert',
+                    controller: ctrlId,
+                    message: data.message,
+                    ts: data.timestamp
+                };
+            } catch (e) { return; }
+        } else if (type === 'status') {
             payload = {
                 type: 'status',
                 controller: ctrlId,
@@ -119,14 +128,14 @@ function setupMqttForUser(ws, user) {
             };
         }
 
-        // Kirim ke Browser melalui WebSocket
-        if (ws.readyState === WebSocket.OPEN) {
+        if (ws.readyState === WebSocket.OPEN && payload) {
             ws.send(JSON.stringify(payload));
         }
     });
 
     activeSubscriptions.set(user.username, mqttClient);
 }
+
 
 // ─── ROUTING ───
 // Menangani "Cannot GET /" dengan mengirim file utama

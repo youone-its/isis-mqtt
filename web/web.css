@@ -415,3 +415,56 @@ canvas {
   padding: 8px 10px;
   text-align: center;
 }
+
+/* ─── Alerts System ──────────────────────────── */
+.alerts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--red-dim);
+  border: 1px solid rgba(248,81,73,0.3);
+  border-radius: var(--r);
+  animation: slideIn 0.3s ease-out;
+}
+
+.alert-icon {
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.alert-message {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.alert-meta {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

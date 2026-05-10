@@ -6,8 +6,7 @@ const sensorPub = createClient('sensor_publisher_01');
 const securityPub = createClient('security_publisher');
 const statusPub = createClient('status_publisher', {
     will: {
-        // Ganti ke salah satu controller utama agar masuk ke filter web.js
-        topic: 'farm/YBA_01/status', 
+        topic: 'farm/status/YBA_01', 
         payload: Buffer.from('Offline'),
         qos: 1,
         retain: true 
@@ -17,7 +16,6 @@ const statusPub = createClient('status_publisher', {
 sensorPub.on('connect', () => {
     console.log('✅ Sensor Publisher Connected (MQTT 5.0)');
     
-    // Membaca CSV dan simulasi stream
     const rows = [];
     fs.createReadStream('./publisher/sensor_data.csv')
         .pipe(csv())
@@ -28,12 +26,13 @@ sensorPub.on('connect', () => {
                 if (index >= rows.length) index = 0;
                 const row = rows[index];
 
-                // Fitur: User Properties (Metadata) & Expiry & Alias
+                // QoS 0 for realtime sensor data
                 const options = {
-                    qos: 1,
+                    qos: 0,
+                    retain: true, // Enable retained messages for latest values
                     properties: {
-                        messageExpiryInterval: 60, // Fitur: Expiry 60 detik
-                        topicAlias: 1,            // Fitur: Topic Alias
+                        messageExpiryInterval: 60,
+                        topicAlias: 1,
                         userProperties: {
                             'unit-temp': 'Celsius',
                             'sensor-type': 'Industrial'
@@ -41,18 +40,32 @@ sensorPub.on('connect', () => {
                     }
                 };
 
-                const topic = `farm/${row.main_controller_id}/sensor/${row.sensor_module_id}`;
+                const topic = `farm/sensors/${row.main_controller_id}/${row.sensor_module_id}`;
                 const payload = JSON.stringify({
-                    temp: row.temperature,
-                    hum: row.humidity,
-                    co2: row.CO2,
-                    token: row.refreshable_token
+                    temp: parseFloat(row.temperature),
+                    hum: parseFloat(row.humidity),
+                    co2: parseFloat(row.CO2),
+                    token: row.refreshable_token,
+                    timestamp: new Date().toISOString() // Timestamp Integration
                 });
 
                 sensorPub.publish(topic, payload, options);
+                
+                // Realistic Alert System: Publish alert if thresholds exceeded
+                if (parseFloat(row.temperature) > 35 || parseFloat(row.humidity) < 40 || parseFloat(row.CO2) > 1000) {
+                    const alertTopic = `farm/alerts/${row.main_controller_id}`;
+                    const alertPayload = JSON.stringify({
+                        type: 'THRESHOLD_ALERT',
+                        controller: row.main_controller_id,
+                        message: `Critical levels detected! T:${row.temperature}°C H:${row.humidity}% CO2:${row.CO2}ppm`,
+                        timestamp: new Date().toISOString()
+                    });
+                    sensorPub.publish(alertTopic, alertPayload, { qos: 1 }); // Alerts use QoS 1
+                }
+
                 console.log(`[Sensor] Published to ${topic}`);
                 index++;
-            }, 3000); // Kirim tiap 3 detik
+            }, 1000); // Increased rate for Flow Control Testing (from 3s to 1s)
         });
 });
 
@@ -66,7 +79,6 @@ securityPub.on('message', (topic, message, packet) => {
         const requestData = JSON.parse(message.toString());
         console.log(`[Security] Received Request:`, requestData);
 
-        // Fitur: Request-Response Pattern
         const responseTopic = packet.properties.responseTopic;
         const correlationData = packet.properties.correlationData;
 
@@ -85,5 +97,6 @@ securityPub.on('message', (topic, message, packet) => {
 });
 
 statusPub.on('connect', () => {
-    statusPub.publish('farm/system/status', 'System Online', { retain: true, qos: 1 });
-});
+    // Initial status with QoS 1 and Retain
+    statusPub.publish('farm/status/system', 'System Online', { retain: true, qos: 1 });
+});

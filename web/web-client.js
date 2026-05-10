@@ -118,6 +118,42 @@ function setWsState(state) {
   label.textContent = state === 'connected' ? 'Connected' : state === 'error' ? 'Error' : 'Disconnected';
 }
 
+function addAlert(ctrlId, message, ts) {
+  const container = document.getElementById('alerts-container');
+  const noData = container.querySelector('.no-data');
+  if (noData) noData.remove();
+
+  const alertId = `alert-${ctrlId}-${Date.now()}`;
+  const alertEl = document.createElement('div');
+  alertEl.className = 'alert-item';
+  alertEl.id = alertId;
+  alertEl.innerHTML = `
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-content">
+      <div class="alert-title">${ctrlId} Alert</div>
+      <div class="alert-message">${message}</div>
+      <div class="alert-meta">${new Date(ts).toLocaleString()}</div>
+    </div>
+    <button class="btn-logout" style="margin-left:auto; padding:2px 8px" onclick="this.parentElement.remove(); checkEmptyAlerts()">Dismiss</button>
+  `;
+  container.prepend(alertEl);
+
+  // Auto-remove after 30 seconds if not dismissed
+  setTimeout(() => {
+    if (document.getElementById(alertId)) {
+      document.getElementById(alertId).remove();
+      checkEmptyAlerts();
+    }
+  }, 30000);
+}
+
+function checkEmptyAlerts() {
+  const container = document.getElementById('alerts-container');
+  if (container.children.length === 0) {
+    container.innerHTML = '<span class="no-data">No active alerts. System healthy.</span>';
+  }
+}
+
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${proto}//${location.host}`);
@@ -160,9 +196,13 @@ function connectWS() {
     } else if (data.type === 'status') {
       updateControllerBadge(data.controller, data.status);
       addLog('status', `${data.controller} is ${data.status}`);
+    } else if (data.type === 'alert') {
+      addAlert(data.controller, data.message, data.ts);
+      addLog('error', `ALERT ${data.controller}: ${data.message}`);
     }
   };
 }
+
 
 document.getElementById('login-form').addEventListener('submit', (e) => {
   e.preventDefault();
