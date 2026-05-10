@@ -1,0 +1,22 @@
+{
+  "name": "demomqtt",
+  "version": "1.0.0",
+  "description": "IoT Greenhouse Monitoring System with MQTT 5.0",
+  "scripts": {
+    "start": "node common/web.js",
+    "pub": "node publisher/pub.js",
+    "sub": "node subscriber/subs.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "csv": "^6.5.1",
+    "csv-parser": "^3.2.1",
+    "express": "^5.2.1",
+    "mqtt": "^5.15.1",
+    "sqlite3": "^6.0.1",
+    "ws": "^8.18.0"
+  }
+}

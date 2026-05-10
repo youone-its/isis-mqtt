@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GCMS — Greenhouse Monitor</title>
+  <link rel="stylesheet" href="web.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-header">
+        <span class="logo">🌿 GCMS</span>
+        <h1 id="auth-title">System Login</h1>
+        <p id="auth-subtitle">Access Greenhouse Central Monitoring</p>
+      </div>
+
+      <form id="login-form">
+        <div class="input-group">
+          <label>Username</label>
+          <input type="text" id="login-user" placeholder="Enter username" required />
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="login-pass" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-primary">Connect to System</button>
+        <p class="auth-switch">Don't have an account? <a href="#" onclick="toggleAuth(true)">Register</a></p>
+      </form>
+
+      <form id="register-form" style="display: none;">
+        <div class="input-group">
+          <label>New Username</label>
+          <input type="text" id="reg-user" placeholder="Choose username" required />
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="reg-pass" placeholder="••••••••" required />
+        </div>
+        <div class="input-group">
+          <label>Controller Access ID</label>
+          <input type="text" id="reg-ctrl" placeholder="e.g., YBA_01, KCD_01" required />
+        </div>
+        <button type="submit" class="btn-primary">Create Account</button>
+        <p class="auth-switch">Already registered? <a href="#" onclick="toggleAuth(false)">Login</a></p>
+      </form>
+      
+      <div id="auth-error" class="auth-error" style="display: none;"></div>
+    </div>
+  </div>
+
+  <div id="main-content" class="blurred">
+    <header>
+      <div class="header-left">
+        <span class="logo">🌿 GCMS</span>
+        <span class="tagline">Greenhouse Central Monitoring</span>
+      </div>
+      <div class="header-right">
+        <div class="ws-badge" id="ws-badge">
+          <span class="ws-dot" id="ws-dot"></span>
+          <span id="ws-label">Disconnected</span>
+        </div>
+        <div class="chip">Msg: <strong id="msg-count">0</strong></div>
+        <button onclick="location.reload()" class="btn-logout">Logout</button>
+      </div>
+    </header>
+
+    <section class="section">
+      <h2 class="section-title">Controller Status</h2>
+      <div id="controller-badges" class="badge-row">
+        <span class="no-data">Waiting for authentication…</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">Latest Readings</h2>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <span class="metric-label">Temperature</span>
+          <span class="metric-val" id="m-temp">—</span>
+          <span class="metric-unit">°C</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Humidity</span>
+          <span class="metric-val" id="m-humidity">—</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">CO₂</span>
+          <span class="metric-val" id="m-co2">—</span>
+          <span class="metric-unit">ppm</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Active Controllers</span>
+          <span class="metric-val" id="m-ctrl">0</span>
+          <span class="metric-unit">online</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">Realtime Charts</h2>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Temperature</span>
+            <span class="chart-unit">°C</span>
+          </div>
+          <canvas id="chart-temp"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Humidity</span>
+            <span class="chart-unit">%</span>
+          </div>
+          <canvas id="chart-humidity"></canvas>
+        </div>
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <span class="chart-title">CO₂ Concentration</span>
+            <span class="chart-unit">ppm</span>
+          </div>
+          <canvas id="chart-co2"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="log-header">
+        <h2 class="section-title" style="margin:0">Event Log</h2>
+        <button onclick="clearLog()">Clear</button>
+      </div>
+      <div id="event-log" class="event-log">
+        <span class="no-data">System ready. Please login.</span>
+      </div>
+    </section>
+  </div>
+
+  <script src="web-client.js"></script>
+  <script>
+    function toggleAuth(isReg) {
+      document.getElementById('login-form').style.display = isReg ? 'none' : 'block';
+      document.getElementById('register-form').style.display = isReg ? 'block' : 'none';
+      document.getElementById('auth-title').textContent = isReg ? 'Register User' : 'System Login';
+      document.getElementById('auth-subtitle').textContent = isReg ? 'Create new greenhouse account' : 'Access Greenhouse Central Monitoring';
+      document.getElementById('auth-error').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
