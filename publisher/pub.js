@@ -45,8 +45,17 @@ sensorPub.on('connect', () => {
                     qos: 0,
                     retain: true,
                     properties: {
-                        topicAlias: 1, // Using Alias 1 for this topic
-                        messageExpiryInterval: 60 // Message expires after 60 seconds
+                        topicAlias: 1,
+                        messageExpiryInterval: 60,
+
+                        // MQTT 5.0 Metadata
+                        userProperties: {
+                            'sensor-type': row.sensor_module_id,
+                            'unit-temperature': 'Celsius',
+                            'unit-humidity': '%',
+                            'unit-co2': 'ppm',
+                            'controller-id': row.main_controller_id
+                        }
                     }
                 };
 
