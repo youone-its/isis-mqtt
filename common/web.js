@@ -99,17 +99,23 @@ function setupMqttForUser(ws, user) {
         if (type === 'sensors') {
             try {
                 const data = JSON.parse(message.toString());
+                const modId = parts[3];
+
+                // Step 2: Improved Data Persistence (DB Logging)
+                const stmt = db.prepare('INSERT INTO sensor_logs (controller_id, module_id, temperature, humidity, co2) VALUES (?, ?, ?, ?, ?)');
+                stmt.run(ctrlId, modId, data.temp, data.hum, data.co2);
+
                 payload = {
                     type: 'sensor',
                     controller: ctrlId,
-                    ts: data.timestamp || Date.now(),
+                    ts: data.timestamp || new Date().toISOString(),
                     payload: {
                         temperature: parseFloat(data.temp),
                         humidity: parseFloat(data.hum),
                         co2: parseFloat(data.co2)
                     }
                 };
-            } catch (e) { return; }
+            } catch (e) { console.error("DB Log Error:", e); return; }
         } else if (type === 'alerts') {
             try {
                 const data = JSON.parse(message.toString());
@@ -121,11 +127,22 @@ function setupMqttForUser(ws, user) {
                 };
             } catch (e) { return; }
         } else if (type === 'status') {
-            payload = {
-                type: 'status',
-                controller: ctrlId,
-                status: message.toString().toLowerCase().includes('offline') ? 'offline' : 'online'
-            };
+            try {
+                const data = JSON.parse(message.toString());
+                payload = {
+                    type: 'status',
+                    controller: ctrlId,
+                    status: data.status,
+                    ts: data.timestamp
+                };
+            } catch (e) {
+                // Fallback for non-JSON status
+                payload = {
+                    type: 'status',
+                    controller: ctrlId,
+                    status: message.toString().toLowerCase().includes('offline') ? 'offline' : 'online'
+                };
+            }
         }
 
         if (ws.readyState === WebSocket.OPEN && payload) {
@@ -138,9 +155,19 @@ function setupMqttForUser(ws, user) {
 
 
 // ─── ROUTING ───
-// Menangani "Cannot GET /" dengan mengirim file utama
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../web/web.html'));
+});
+
+// Historical Data API
+app.get('/api/history/:controllerId', (req, res) => {
+    const { controllerId } = req.params;
+    try {
+        const rows = db.prepare('SELECT * FROM sensor_logs WHERE controller_id = ? ORDER BY timestamp DESC LIMIT 50').all(controllerId);
+        res.json(rows.reverse());
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ─── START ───

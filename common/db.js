@@ -8,6 +8,16 @@ db.exec(`CREATE TABLE IF NOT EXISTS users (
     allowed_controllers TEXT
 )`);
 
+db.exec(`CREATE TABLE IF NOT EXISTS sensor_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    controller_id TEXT,
+    module_id TEXT,
+    temperature REAL,
+    humidity REAL,
+    co2 REAL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
 const count = db.prepare('SELECT count(*) as count FROM users').get();
 if (count.count === 0) {
     const stmt = db.prepare('INSERT INTO users (username, password, allowed_controllers) VALUES (?, ?, ?)');

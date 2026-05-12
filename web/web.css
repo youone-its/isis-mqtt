@@ -184,6 +184,17 @@ header {
   opacity: 0.7;
 }
 
+.ctrl-badge.active {
+  border-color: var(--text);
+  box-shadow: 0 0 8px rgba(255,255,255,0.1);
+  transform: translateY(-1px);
+}
+
+.ctrl-badge:hover {
+  cursor: pointer;
+  border-color: var(--muted);
+}
+
 .ctrl-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
